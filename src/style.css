@@ -460,49 +460,127 @@ a {
   transform: translateY(0);
 }
 
-/* ===== ENGINEERING FEATS ===== */
-#feats {
+/* ===== UPCOMING EVENTS ===== */
+#events {
   padding: 8rem 3rem;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.stats-grid {
+.events-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
 }
 
-.stat-card {
-  text-align: center;
-  padding: 2.5rem 1.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  transition: all 0.4s ease;
+.event-card {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  border-left: 4px solid var(--accent-1);
 }
 
-.stat-card:hover {
-  background: var(--bg-card-hover);
-  transform: translateY(-4px);
-  border-color: rgba(245, 158, 11, 0.15);
-}
-
-.stat-number {
+.event-card h3 {
   font-family: var(--font-primary);
-  font-size: 3.5rem;
-  font-weight: 800;
-  background: var(--gradient-main);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 0.5rem;
+  font-size: 1.4rem;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
 }
 
-.stat-label {
-  font-size: 0.9rem;
+.event-card p {
   color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== TEAM SECTION ===== */
+#team {
+  padding: 8rem 3rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2.5rem;
+  margin-top: 3rem;
+}
+
+.team-card {
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.3s ease;
+  background: rgba(30, 30, 36, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.team-card:hover {
+  transform: translateY(-8px);
+  background: rgba(30, 30, 36, 0.7);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.team-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1.5rem;
+  border: 3px solid var(--accent-1);
+}
+
+.team-card h3 {
+  font-family: var(--font-primary);
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.team-role {
+  color: var(--accent-2);
   font-weight: 500;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.team-desc {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  flex-grow: 1; /* Pushes contacts to the bottom evenly */
+  margin-bottom: 1.5rem;
+}
+
+.team-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.contact-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.contact-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent-1);
 }
 
 /* ===== FOOTER ===== */

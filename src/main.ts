@@ -12,37 +12,9 @@ window.addEventListener('scroll', () => {
   }
 });
 
-// ===== STAT COUNTER ANIMATION =====
-function animateCounters() {
-  const statNumbers = document.querySelectorAll('.stat-number');
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target as HTMLElement;
-        const target = parseInt(el.getAttribute('data-target') || '0');
-        let current = 0;
-        const increment = target / 60;
-        const timer = setInterval(() => {
-          current += increment;
-          if (current >= target) {
-            el.textContent = target + '+';
-            clearInterval(timer);
-          } else {
-            el.textContent = Math.floor(current) + '+';
-          }
-        }, 25);
-        observer.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-
-  statNumbers.forEach(el => observer.observe(el));
-}
-
 // ===== SECTION FADE-IN ANIMATIONS =====
 function initSectionAnimations() {
-  const sections = document.querySelectorAll('#about, #feats, footer');
+  const sections = document.querySelectorAll('#about, #events, footer');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -64,6 +36,5 @@ function initSectionAnimations() {
 document.addEventListener('DOMContentLoaded', () => {
   initBeamSimulation();
   initBackgroundAnimations();
-  animateCounters();
   initSectionAnimations();
 });

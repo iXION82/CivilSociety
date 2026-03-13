@@ -99,7 +99,7 @@ export function initBackgroundAnimations() {
         case 'soil': drawSoil(data.ctx, w, h, p); break;
         case 'earthquake': drawEarthquake(data.ctx, w, h, p); break;
         case 'wind': drawWind(data.ctx, w, h, p); break;
-        case 'bridge': drawBridge(data.ctx, w, h, p); break;
+        case 'dam': drawDam(data.ctx, w, h, p); break;
       }
     });
   }
@@ -325,7 +325,7 @@ function drawWind(ctx: CanvasRenderingContext2D, w: number, h: number, p: number
   
   ctx.save();
   // Simulate building sway/flex at the top due to aerodynamic loads
-  const swayAngle = p * 0.05; // Base angle (radians)
+  const swayAngle = -p * 0.05; // Base angle (radians) - Negative because wind blows Right->Left
   const vibration = Math.sin(Date.now() / 50) * 0.005 * p; // High frequency low amplitude flutter
   
   ctx.translate(cx, groundY); // Pin rotation to ground
@@ -420,118 +420,111 @@ function drawWind(ctx: CanvasRenderingContext2D, w: number, h: number, p: number
   ctx.setLineDash([]);
 }
 
-function drawBridge(ctx: CanvasRenderingContext2D, w: number, h: number, p: number) {
+function drawDam(ctx: CanvasRenderingContext2D, w: number, h: number, p: number) {
   const cx = w * 0.5; // Center
-  const groundY = h * 0.8;
-  const towerDist = 400; // Distance between towers
-  const towerH = 300;
-  const deckY = groundY - 150;
+  const groundY = h * 0.9;
+  const damHeight = 600;
+  const damTopY = groundY - damHeight; // Very tall dam
   
-  // Towers
+  // The water level rises from the bottom as you scroll
+  // Add a small base water level so it's not empty
+  const waterDepth = (damHeight * 0.1) + p * (damHeight * 0.85); 
+  const waterSurfaceY = groundY - waterDepth;
+
+  // Draw Water (Left side of the dam)
+  ctx.fillStyle = 'rgba(56, 189, 248, 0.2)'; // Light blue transparent
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  ctx.lineTo(cx, groundY);
+  ctx.lineTo(cx, waterSurfaceY);
+  
+  // Wavy water surface
+  const t = Date.now() / 500;
+  for (let x = cx; x >= 0; x -= 20) {
+    const waveY = Math.sin(x * 0.05 + t) * 10;
+    ctx.lineTo(x, waterSurfaceY + waveY);
+  }
+  ctx.lineTo(0, waterSurfaceY);
+  ctx.fill();
+
+  // Draw Dam (Gravity Dam Profile - thicker at base)
   ctx.fillStyle = '#444455';
-  ctx.fillRect(cx - towerDist/2 - 10, groundY - towerH, 20, towerH);
-  ctx.fillRect(cx + towerDist/2 - 10, groundY - towerH, 20, towerH);
-  
-  // Load location (truck) moves across bridge based on progress p
-  const loadX = (w * 0.1) + p * (w * 0.8);
-  
-  // Deck deflection formula
-  // Deck is a simple line, but dips down near the load
-  const maxDeflection = 30; // 30px max dip
-  const TOWER_GAP = towerDist/2;
-  
-  ctx.strokeStyle = '#888899';
-  ctx.lineWidth = 6;
   ctx.beginPath();
-  
-  for (let x = 0; x <= w; x += 10) {
-    let y = deckY;
-    
-    // Apply deflection ONLY if between towers (with small padding so ends don't drop)
-    if (x > cx - TOWER_GAP + 10 && x < cx + TOWER_GAP - 10) {
-       // Deflection influence radius
-       const distToLoad = Math.abs(x - loadX);
-       if (distToLoad < 180) {
-          const influence = Math.cos((distToLoad / 180) * Math.PI / 2);
-          // Only deflect if load is also firmly on the suspended span
-          if (loadX > cx - TOWER_GAP + 50 && loadX < cx + TOWER_GAP - 50) {
-            y += influence * maxDeflection;
-          }
-       }
-    }
-    
-    if (x === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
+  ctx.moveTo(cx, groundY); // Heel (upstream)
+  ctx.lineTo(cx + 250, groundY); // Toe (downstream)
+  ctx.lineTo(cx + 40, damTopY); // Top downstream edge
+  ctx.lineTo(cx, damTopY); // Top upstream edge (vertical face)
+  ctx.fill();
+
+  // Draw foundation line
+  ctx.strokeStyle = '#2c251d';
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + 5);
+  ctx.lineTo(w, groundY + 5);
   ctx.stroke();
 
-  // Main suspension cable
-  ctx.strokeStyle = '#f59e0b'; // Amber cables
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  // Left anchor to left tower
-  ctx.moveTo(cx - towerDist/2 - 150, deckY);
-  ctx.quadraticCurveTo(cx - towerDist/2 - 75, groundY - towerH + 20, cx - towerDist/2, groundY - towerH);
-  
-  // Left tower to right tower (parabola)
-  // Deflect parabola slightly based on load
-  let loadSag = 0;
-  if (loadX > cx - towerDist/2 && loadX < cx + towerDist/2) {
-    // Parabola sags more towards the load
-    loadSag = maxDeflection * 0.8; 
-  }
-  
-  // To draw a dynamic parabola we use bezier or quadratic. 
-  // A standard suspension cable is a parabola, best approximated with quadratic.
-  // The control point x needs to shift towards the load.
-  let cpX = cx;
-  if(loadX > cx - towerDist/2 && loadX < cx + towerDist/2) {
-     cpX = cx + (loadX - cx) * 0.3; // Shift control point slightly towards load
-  }
-  
-  ctx.quadraticCurveTo(cpX, deckY + 50 + loadSag, cx + towerDist/2, groundY - towerH);
-  
-  // Right tower to right anchor
-  ctx.quadraticCurveTo(cx + towerDist/2 + 75, groundY - towerH + 20, cx + towerDist/2 + 150, deckY);
-  ctx.stroke();
+  // Draw Hydrostatic Pressure Distribution (Triangular load)
+  // Pressure = density * gravity * depth
+  // Represented as horizontal arrows pushing against the vertical face (cx)
+  if (waterDepth > 50) {
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Red arrows
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+    ctx.lineWidth = 2;
 
-  // Draw suspender cables (vertical lines)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-  ctx.lineWidth = 1;
-  const numSuspenders = 30;
-  for (let i = 1; i < numSuspenders; i++) {
-    const x = cx - towerDist/2 + (i / numSuspenders) * towerDist;
-    // Find y of main cable at x by interpolation
-    const t = i / numSuspenders;
-    // Quadratic bezier y formula: (1-t)^2*y1 + 2(1-t)t*yc + t^2*y2
-    const y1 = groundY - towerH;
-    const yc = deckY + 50 + loadSag;
-    const y2 = groundY - towerH;
-    const cableY = Math.pow(1-t, 2)*y1 + 2*(1-t)*t*yc + Math.pow(t, 2)*y2;
-    
-    // Find y of deck at x
-    let dY = deckY;
-    const distToLoad = Math.abs(x - loadX);
-    if (distToLoad < 180 && loadX > cx - TOWER_GAP + 50 && loadX < cx + TOWER_GAP - 50) {
-      if (x > cx - TOWER_GAP + 10 && x < cx + TOWER_GAP - 10) { // Safety clamp for suspenders too
-         dY += Math.cos((distToLoad / 180) * Math.PI / 2) * maxDeflection;
+    const numArrows = 15;
+    // We only draw arrows underwater
+    for (let i = 1; i <= numArrows; i++) {
+      const y = waterSurfaceY + (i / numArrows) * waterDepth;
+      
+      // Depth relative to surface determines pressure (arrow length)
+      const depthAtY = y - waterSurfaceY;
+      const pressureMagnitude = depthAtY * 0.6; // Scale factor for visual
+
+      if (pressureMagnitude > 5) {
+        const arrowStartX = cx - pressureMagnitude - 10; // Keep it slightly off the wall
+        const arrowEndX = cx - 10;
+
+        // Draw shaft
+        ctx.beginPath();
+        ctx.moveTo(arrowStartX, y);
+        ctx.lineTo(arrowEndX, y);
+        ctx.stroke();
+
+        // Draw arrowhead
+        ctx.beginPath();
+        ctx.moveTo(arrowEndX, y);
+        ctx.lineTo(arrowEndX - 10, y - 5);
+        ctx.lineTo(arrowEndX - 10, y + 5);
+        ctx.fill();
       }
     }
-    
+
+    // Draw the bounding triangle of the pressure distribution
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+    ctx.setLineDash([5, 5]);
     ctx.beginPath();
-    ctx.moveTo(x, cableY);
-    ctx.lineTo(x, dY);
+    ctx.moveTo(cx - 10, waterSurfaceY);
+    ctx.lineTo(cx - (waterDepth * 0.6) - 10, groundY);
+    ctx.lineTo(cx - 10, groundY);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 
-  // Draw Load (Truck)
-  ctx.fillStyle = '#ef4444';
-  let tY = deckY;
-  if (loadX > cx - TOWER_GAP + 50 && loadX < cx + TOWER_GAP - 50) {
-      tY += maxDeflection; // Load is at center of deflection
+  // Visual stress on the dam (color shift at base based on total water volume)
+  // Only show stress when water is high
+  if (p > 0.5) {
+     const stressIntensity = (p - 0.5) * 2; // 0 to 1
+     const gradient = ctx.createLinearGradient(cx, groundY, cx + 250, groundY - damHeight/2);
+     gradient.addColorStop(0, `rgba(245, 158, 11, ${stressIntensity * 0.4})`); // Amber stress at toe
+     gradient.addColorStop(1, 'rgba(68, 68, 85, 0)'); // Normal color higher up
+     
+     ctx.fillStyle = gradient;
+     ctx.beginPath();
+     ctx.moveTo(cx, groundY);
+     ctx.lineTo(cx + 250, groundY);
+     ctx.lineTo(cx + 40, damTopY);
+     ctx.lineTo(cx, damTopY);
+     ctx.fill();
   }
-  ctx.fillRect(loadX - 20, tY - 15, 40, 15);
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(loadX - 10, tY, 4, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(loadX + 10, tY, 4, 0, Math.PI*2); ctx.fill();
 }
