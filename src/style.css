@@ -396,6 +396,70 @@ a {
   letter-spacing: 0.5px;
 }
 
+/* ===== CONCEPTS SECTION ===== */
+#concepts {
+  position: relative;
+  background: var(--bg-primary);
+  padding-top: 6rem;
+}
+
+#concepts .section-header {
+  margin-bottom: 2rem;
+}
+
+.concept-block {
+  position: relative;
+  height: 200vh; /* Scrollytelling height */
+  width: 100%;
+}
+
+.concept-bg-canvas {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.concept-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  padding: 0 5vw;
+  pointer-events: none;
+}
+
+.concept-content .glass-card {
+  max-width: 480px;
+  pointer-events: auto;
+  opacity: 0.1; /* Animated via JS later */
+  transform: translateY(20px);
+  transition: opacity 0.4s, transform 0.4s;
+  background: rgba(18, 18, 26, 0.7);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.concept-content.left-align {
+  justify-content: flex-start;
+}
+
+.concept-content.right-align {
+  justify-content: flex-end;
+}
+
+/* Modifier class added by JS when block is active */
+.concept-content.active .glass-card {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ===== ENGINEERING FEATS ===== */
 #feats {
   padding: 8rem 3rem;

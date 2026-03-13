@@ -1,5 +1,6 @@
 import './style.css';
 import { initBeamSimulation } from './beam';
+import { initBackgroundAnimations } from './backgroundAnimations';
 
 // ===== NAVBAR SCROLL EFFECT =====
 const navbar = document.getElementById('navbar');
@@ -62,6 +63,7 @@ function initSectionAnimations() {
 // ===== INITIALIZE =====
 document.addEventListener('DOMContentLoaded', () => {
   initBeamSimulation();
+  initBackgroundAnimations();
   animateCounters();
   initSectionAnimations();
 });
