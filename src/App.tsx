@@ -8,6 +8,7 @@ import Team from './pages/Team'
 import Events from './pages/Events'
 import Professors from './pages/Professors'
 import Alumni from './pages/Alumni'
+import ISM from './pages/ISM'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/team" element={<Team />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/ism" element={<ISM />} />
           <Route path="/professors" element={<Professors />} />
           <Route path="/alumni" element={<Alumni />} />
         </Routes>

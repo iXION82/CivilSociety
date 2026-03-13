@@ -22,7 +22,7 @@ export default function Team() {
       name: 'Matam Sai Yashwanth', 
       role: 'Vice President', 
       desc: 'Supporting chapter initiatives and fostering academic collaboration across departments.',
-      number: '+91 2345678901',
+      number: '+91 91000 71964',
       linkedin: 'https://linkedin.com/in/your-link-here'
     },
     { 
