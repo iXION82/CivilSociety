@@ -47,12 +47,13 @@ export function initBeamSimulation() {
   rimLight.position.set(-5, 3, -3);
   scene.add(rimLight);
 
-  // ===== GROUND GRID =====
+  // ===== GROUND =====
+  const GROUND_Y = -0.5;
+
   const gridHelper = new THREE.GridHelper(30, 30, 0x1a1a2e, 0x1a1a2e);
-  gridHelper.position.y = -0.5;
+  gridHelper.position.y = GROUND_Y;
   scene.add(gridHelper);
 
-  // Ground plane for shadows
   const groundGeo = new THREE.PlaneGeometry(30, 30);
   const groundMat = new THREE.MeshStandardMaterial({
     color: 0x0d0d14,
@@ -61,7 +62,7 @@ export function initBeamSimulation() {
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.49;
+  ground.position.y = GROUND_Y + 0.01;
   ground.receiveShadow = true;
   scene.add(ground);
 
@@ -69,10 +70,15 @@ export function initBeamSimulation() {
   const BEAM_LENGTH = 8;
   const BEAM_HEIGHT = 0.4;
   const BEAM_DEPTH = 0.6;
-  const SUPPORT_OFFSET = 3.5; // distance from center to each support
+  const SUPPORT_OFFSET = 3.5;
+  const SUPPORT_HEIGHT = 0.6;
+  const BEAM_REST_Y = GROUND_Y + SUPPORT_HEIGHT + BEAM_HEIGHT / 2;
+  const SPAN = SUPPORT_OFFSET * 2;
+  const MAX_LOAD = 300;
+  const MAX_DEFLECTION = SUPPORT_HEIGHT * 0.85; // don't go all the way to ground
 
   // ===== CREATE BEAM =====
-  const beamSegments = 60;
+  const beamSegments = 80;
   const beamGeo = new THREE.BoxGeometry(BEAM_LENGTH, BEAM_HEIGHT, BEAM_DEPTH, beamSegments, 4, 1);
   const beamMat = new THREE.MeshStandardMaterial({
     color: 0x8899aa,
@@ -81,7 +87,6 @@ export function initBeamSimulation() {
     vertexColors: true,
   });
 
-  // Initialize vertex colors (neutral grey-blue)
   const beamColors = new Float32Array(beamGeo.attributes.position.count * 3);
   for (let i = 0; i < beamColors.length; i += 3) {
     beamColors[i] = 0.53;
@@ -91,309 +96,223 @@ export function initBeamSimulation() {
   beamGeo.setAttribute('color', new THREE.BufferAttribute(beamColors, 3));
 
   const beam = new THREE.Mesh(beamGeo, beamMat);
-  beam.position.y = 1.0;
+  beam.position.y = BEAM_REST_Y;
   beam.castShadow = true;
   beam.receiveShadow = true;
   scene.add(beam);
 
-  // Store original positions for deformation
   const originalPositions = new Float32Array(beamGeo.attributes.position.array.length);
   originalPositions.set(beamGeo.attributes.position.array);
 
-  // ===== CREATE SUPPORTS (triangular prisms) =====
+  // ===== CREATE SUPPORTS =====
   function createSupport(x: number) {
     const shape = new THREE.Shape();
-    shape.moveTo(-0.35, 0);
-    shape.lineTo(0.35, 0);
-    shape.lineTo(0, 0.5);
+    shape.moveTo(-0.4, 0);
+    shape.lineTo(0.4, 0);
+    shape.lineTo(0, SUPPORT_HEIGHT);
     shape.closePath();
 
-    const extrudeSettings = { depth: BEAM_DEPTH + 0.1, bevelEnabled: false };
-    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x445566,
-      roughness: 0.5,
-      metalness: 0.4,
-    });
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: BEAM_DEPTH + 0.1, bevelEnabled: false });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x556677, roughness: 0.5, metalness: 0.4 });
     const support = new THREE.Mesh(geo, mat);
-    support.position.set(x, -0.5, -(BEAM_DEPTH + 0.1) / 2);
+    support.position.set(x, GROUND_Y, -(BEAM_DEPTH + 0.1) / 2);
     support.castShadow = true;
     support.receiveShadow = true;
     scene.add(support);
     return support;
   }
 
-  const leftSupport = createSupport(-SUPPORT_OFFSET);
-  const rightSupport = createSupport(SUPPORT_OFFSET);
+  createSupport(-SUPPORT_OFFSET);
+  createSupport(SUPPORT_OFFSET);
 
-  // ===== CREATE LOAD ARROW =====
+  // ===== LOAD ARROW =====
   const arrowGroup = new THREE.Group();
-
-  // Arrow shaft (cylinder)
   const shaftGeo = new THREE.CylinderGeometry(0.06, 0.06, 2, 16);
   const arrowMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3, metalness: 0.5 });
   const shaft = new THREE.Mesh(shaftGeo, arrowMat);
   shaft.position.y = 1;
-
-  // Arrow head (cone)
   const headGeo = new THREE.ConeGeometry(0.2, 0.5, 16);
   const head = new THREE.Mesh(headGeo, arrowMat);
   head.position.y = 0;
-  head.rotation.x = Math.PI; // point downward
-
-  arrowGroup.add(shaft);
-  arrowGroup.add(head);
-  arrowGroup.position.set(0, 5, 0); // start high above beam
+  head.rotation.x = Math.PI;
+  arrowGroup.add(shaft, head);
+  arrowGroup.position.set(0, 5, 0);
   arrowGroup.visible = false;
   scene.add(arrowGroup);
 
-  // ===== FRACTURE PIECES =====
-  const fracturedPieces: THREE.Mesh[] = [];
-  let fractureCreated = false;
+  // ===== FRACTURE PIECES (free-fall, no pivot) =====
+  const HALF_LEN = BEAM_LENGTH / 2 - 0.05;
 
-  function createFracturePieces() {
-    if (fractureCreated) return;
-    fractureCreated = true;
+  const leftHalfGeo = new THREE.BoxGeometry(HALF_LEN, BEAM_HEIGHT, BEAM_DEPTH);
+  const leftFracMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5, metalness: 0.4 });
+  const leftHalf = new THREE.Mesh(leftHalfGeo, leftFracMat);
+  leftHalf.castShadow = true;
+  leftHalf.receiveShadow = true;
+  leftHalf.visible = false;
+  scene.add(leftHalf);
 
-    // Left half
-    const leftGeo = new THREE.BoxGeometry(BEAM_LENGTH / 2 - 0.05, BEAM_HEIGHT, BEAM_DEPTH);
-    const leftMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5, metalness: 0.4 });
-    const leftPiece = new THREE.Mesh(leftGeo, leftMat);
-    leftPiece.position.copy(beam.position);
-    leftPiece.position.x -= BEAM_LENGTH / 4;
-    leftPiece.castShadow = true;
-    leftPiece.visible = false;
-    scene.add(leftPiece);
-    fracturedPieces.push(leftPiece);
+  const rightHalfGeo = new THREE.BoxGeometry(HALF_LEN, BEAM_HEIGHT, BEAM_DEPTH);
+  const rightFracMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5, metalness: 0.4 });
+  const rightHalf = new THREE.Mesh(rightHalfGeo, rightFracMat);
+  rightHalf.castShadow = true;
+  rightHalf.receiveShadow = true;
+  rightHalf.visible = false;
+  scene.add(rightHalf);
 
-    // Right half
-    const rightGeo = new THREE.BoxGeometry(BEAM_LENGTH / 2 - 0.05, BEAM_HEIGHT, BEAM_DEPTH);
-    const rightMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5, metalness: 0.4 });
-    const rightPiece = new THREE.Mesh(rightGeo, rightMat);
-    rightPiece.position.copy(beam.position);
-    rightPiece.position.x += BEAM_LENGTH / 4;
-    rightPiece.castShadow = true;
-    rightPiece.visible = false;
-    scene.add(rightPiece);
-    fracturedPieces.push(rightPiece);
+  // ===== FRACTURE PHYSICS STATE =====
+  // Simple free-fall: each piece has position, velocity, rotation, angular velocity
+  // Pieces fall under gravity and stop when their bottom edge hits the ground
+  interface PiecePhysics {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    angle: number;    // rotation around Z
+    va: number;       // angular velocity
+    resting: boolean;
   }
 
-  // ===== DEBRIS PARTICLES =====
-  const debrisParticles: THREE.Mesh[] = [];
-  let debrisCreated = false;
+  const GRAVITY = 9.81;
+  const BOUNCE_DAMPING = 0.3;    // energy kept on bounce
+  const REST_THRESHOLD = 0.05;   // velocity below which we consider resting
 
-  function createDebris() {
-    if (debrisCreated) return;
-    debrisCreated = true;
-
-    const debrisGeo = new THREE.TetrahedronGeometry(0.06);
-    const debrisMat = new THREE.MeshStandardMaterial({ color: 0x997755, roughness: 0.8 });
-
-    for (let i = 0; i < 40; i++) {
-      const piece = new THREE.Mesh(debrisGeo, debrisMat.clone());
-      piece.position.set(
-        (Math.random() - 0.5) * 1.0,
-        beam.position.y,
-        (Math.random() - 0.5) * BEAM_DEPTH
-      );
-      piece.visible = false;
-      scene.add(piece);
-      debrisParticles.push(piece);
-    }
-  }
-
-  createFracturePieces();
-  createDebris();
-
-  // ===== SCROLL-DRIVEN ANIMATION =====
-  let scrollProgress = 0;
+  let leftPhys: PiecePhysics = makeFreshPhysics(-BEAM_LENGTH / 4, -1);
+  let rightPhys: PiecePhysics = makeFreshPhysics(BEAM_LENGTH / 4, 1);
   let isFractured = false;
+  let scrollProgress = 0;
 
-  function getScrollProgress() {
-    const rect = simSection.getBoundingClientRect();
-    const sectionTop = -rect.top;
-    const sectionHeight = rect.height - window.innerHeight;
-    return Math.max(0, Math.min(1, sectionTop / sectionHeight));
+  function makeFreshPhysics(startX: number, side: number): PiecePhysics {
+    return {
+      x: startX,
+      y: BEAM_REST_Y,
+      vx: side * 0.3,   // slight horizontal push outward
+      vy: 0,
+      angle: 0,
+      va: side * 0.5,    // slight spin
+      resting: false,
+    };
   }
 
-  function updateSimulation(progress: number) {
-    // Show/hide overlay
-    if (progress > 0.01 && progress < 0.99) {
-      simOverlay.classList.add('visible');
-    } else {
-      simOverlay.classList.remove('visible');
-    }
+  // Get the lowest Y point of a rotated box (center at y, rotated by angle, half-height h/2)
+  function getLowestY(cy: number, angle: number): number {
+    // The four corners of the box cross-section are at offsets:
+    // (±halfLen, ±halfHeight) rotated by angle
+    // We only care about the lowest Y
+    const hw = HALF_LEN / 2;
+    const hh = BEAM_HEIGHT / 2;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
 
-    // ===== PHASE 1: Camera orbit in (0 - 0.15) =====
-    if (progress < 0.15) {
-      const t = progress / 0.15;
-      camera.position.x = 8 * Math.cos(t * Math.PI * 0.5) * (1 - t) + 0;
-      camera.position.z = 12 + (1 - t) * 3;
-      camera.position.y = 4 + (1 - t) * 2;
-      camera.lookAt(0, 0.5, 0);
+    // Corner offsets in Y after rotation
+    const y1 = -hw * sinA - hh * cosA;
+    const y2 = -hw * sinA + hh * cosA;
+    const y3 = hw * sinA - hh * cosA;
+    const y4 = hw * sinA + hh * cosA;
 
-      // Reset beam
-      beam.visible = true;
-      arrowGroup.visible = false;
-      isFractured = false;
-      resetBeam();
-      hideFracture();
-    }
+    return cy + Math.min(y1, y2, y3, y4);
+  }
 
-    // ===== PHASE 2: Arrow comes down (0.15 - 0.4) =====
-    else if (progress < 0.4) {
-      const t = (progress - 0.15) / 0.25;
-      camera.position.set(0, 4, 12);
-      camera.lookAt(0, 0.5, 0);
+  function stepPiece(phys: PiecePhysics, dt: number) {
+    if (phys.resting) return;
 
-      arrowGroup.visible = true;
-      arrowGroup.position.y = 5 - t * 2.8; // descend toward beam
-      arrowGroup.scale.setScalar(0.8 + t * 0.2);
+    // Apply gravity
+    phys.vy -= GRAVITY * dt;
 
-      // Update load indicator
-      const loadPercent = t * 30;
-      loadBarFill.style.width = `${loadPercent}%`;
-      loadLabel.textContent = `Load: ${Math.round(loadPercent * 3.3)} kN`;
+    // Update position
+    phys.x += phys.vx * dt;
+    phys.y += phys.vy * dt;
+    phys.angle += phys.va * dt;
 
-      // Small deflection starts
-      deformBeam(t * 0.15);
-      colorBeam(t * 0.15);
-    }
+    // Check ground collision
+    const lowestY = getLowestY(phys.y, phys.angle);
+    if (lowestY <= GROUND_Y) {
+      // Push piece up so lowest point is at ground
+      phys.y += (GROUND_Y - lowestY);
 
-    // ===== PHASE 3: Increasing load, beam deflects (0.4 - 0.7) =====
-    else if (progress < 0.7) {
-      const t = (progress - 0.4) / 0.3;
-      camera.position.set(0, 3.5 - t * 0.5, 10 - t * 2);
-      camera.lookAt(0, 0.5 - t * 0.3, 0);
+      // Bounce or rest
+      if (Math.abs(phys.vy) < REST_THRESHOLD && Math.abs(phys.va) < REST_THRESHOLD) {
+        // Come to rest
+        phys.vy = 0;
+        phys.vx = 0;
+        phys.va = 0;
+        phys.resting = true;
 
-      arrowGroup.visible = true;
-      arrowGroup.position.y = 2.2 - t * 0.6;
-      arrowGroup.scale.setScalar(1.0 + t * 0.5);
-
-      // Arrow color from amber to red
-      const r = 0.96;
-      const g = 0.62 * (1 - t * 0.7);
-      const b = 0.04 * (1 - t);
-      (arrowMat as THREE.MeshStandardMaterial).color.setRGB(r, g, b);
-
-      // Deflection increases
-      const deflection = 0.15 + t * 0.85;
-      deformBeam(deflection);
-      colorBeam(deflection);
-
-      // Update load indicator
-      const loadPercent = 30 + t * 60;
-      loadBarFill.style.width = `${loadPercent}%`;
-      loadLabel.textContent = `Load: ${Math.round(loadPercent * 3.3)} kN`;
-      loadBarFill.style.background = `linear-gradient(90deg, #f59e0b, hsl(${40 - t * 40}, 90%, 50%))`;
-    }
-
-    // ===== PHASE 4: Beam fractures (0.7 - 1.0) =====
-    else {
-      const t = (progress - 0.7) / 0.3;
-
-      if (!isFractured) {
-        isFractured = true;
-        beam.visible = false;
-        arrowGroup.visible = false;
-
-        // Show fracture pieces
-        fracturedPieces.forEach(p => {
-          p.visible = true;
-          p.position.y = beam.position.y;
-          p.rotation.set(0, 0, 0);
-        });
-
-        // Show debris
-        debrisParticles.forEach(p => {
-          p.visible = true;
-          p.position.y = beam.position.y;
-        });
+        // Settle to flat on ground
+        phys.angle = 0;
+        phys.y = GROUND_Y + BEAM_HEIGHT / 2;
+      } else {
+        // Bounce
+        phys.vy = Math.abs(phys.vy) * BOUNCE_DAMPING;
+        phys.vx *= 0.8;
+        phys.va *= -BOUNCE_DAMPING;
       }
-
-      // Animate fracture pieces falling & rotating
-      if (fracturedPieces.length >= 2) {
-        // Left piece pivots around left support
-        fracturedPieces[0].position.y = beam.position.y - t * 2.5;
-        fracturedPieces[0].position.x = -BEAM_LENGTH / 4 - t * 0.5;
-        fracturedPieces[0].rotation.z = t * 0.5;
-
-        // Right piece pivots around right support
-        fracturedPieces[1].position.y = beam.position.y - t * 2.5;
-        fracturedPieces[1].position.x = BEAM_LENGTH / 4 + t * 0.5;
-        fracturedPieces[1].rotation.z = -t * 0.5;
-      }
-
-      // Debris flies outward
-      debrisParticles.forEach((p, i) => {
-        const angle = (i / debrisParticles.length) * Math.PI * 2;
-        const speed = 0.5 + Math.random() * 1.5;
-        p.position.x = Math.cos(angle) * t * speed;
-        p.position.y = beam.position.y + t * (2 - i * 0.05) - t * t * 4;
-        p.position.z = Math.sin(angle) * t * speed * 0.6;
-        p.rotation.x += 0.1;
-        p.rotation.z += 0.05;
-        // Fade out with opacity
-        ((p.material as THREE.MeshStandardMaterial)).opacity = 1 - t;
-        ((p.material as THREE.MeshStandardMaterial)).transparent = true;
-      });
-
-      // Camera pulls back
-      camera.position.set(t * 2, 4 + t * 1, 10 + t * 3);
-      camera.lookAt(0, 0, 0);
-
-      // Update load indicator
-      loadBarFill.style.width = '100%';
-      loadBarFill.style.background = 'linear-gradient(90deg, #ef4444, #991b1b)';
-      loadLabel.textContent = '⚠ BEAM FAILURE';
-      loadLabel.style.color = '#ef4444';
     }
   }
 
-  function deformBeam(amount: number) {
+  function applyPhysicsToMesh(mesh: THREE.Mesh, phys: PiecePhysics) {
+    mesh.position.x = phys.x;
+    mesh.position.y = phys.y;
+    mesh.position.z = 0;
+    mesh.rotation.z = phys.angle;
+  }
+
+  // ===== EULER-BERNOULLI DEFLECTION =====
+  function beamDeflectionAtX(xFromCenter: number, loadFraction: number): number {
+    const normalizedDist = Math.abs(xFromCenter) / SUPPORT_OFFSET;
+    if (normalizedDist > 1.0) return 0;
+
+    const L = SPAN;
+    const xFromLeft = (1 - normalizedDist) * (L / 2);
+    const normalizedDeflection = (xFromLeft * (3 * L * L - 4 * xFromLeft * xFromLeft)) / (L * L * L);
+
+    return normalizedDeflection * loadFraction * MAX_DEFLECTION;
+  }
+
+  function deformBeam(loadFraction: number) {
     const positions = beamGeo.attributes.position.array as Float32Array;
     for (let i = 0; i < positions.length; i += 3) {
       const origX = originalPositions[i];
       const origY = originalPositions[i + 1];
+      const deflection = beamDeflectionAtX(origX, loadFraction);
 
-      // Parabolic deflection — max at center, zero at supports
-      const normalizedX = origX / (BEAM_LENGTH / 2);
-      const distFromCenter = Math.abs(normalizedX);
-      const deflection = (1 - distFromCenter * distFromCenter) * amount * 0.8;
-
-      positions[i + 1] = origY - deflection;
+      const worldY = BEAM_REST_Y + origY - deflection;
+      const clampedWorldY = Math.max(worldY, GROUND_Y + 0.02);
+      positions[i + 1] = clampedWorldY - BEAM_REST_Y;
     }
     beamGeo.attributes.position.needsUpdate = true;
     beamGeo.computeVertexNormals();
   }
 
-  function colorBeam(stress: number) {
+  function colorBeam(loadFraction: number) {
     const colors = beamGeo.attributes.color.array as Float32Array;
-    const positions = beamGeo.attributes.position.array as Float32Array;
     for (let i = 0; i < colors.length; i += 3) {
       const vertIndex = i / 3;
-      const x = positions[vertIndex * 3];
-      const normalizedX = Math.abs(x) / (BEAM_LENGTH / 2);
-      const localStress = (1 - normalizedX) * stress;
+      const x = originalPositions[vertIndex * 3];
+      const normalizedDist = Math.abs(x) / SUPPORT_OFFSET;
+      const localStress = Math.max(0, (1 - normalizedDist)) * loadFraction;
 
-      // Green → Yellow → Red gradient based on stress
-      const color = new THREE.Color();
-      if (localStress < 0.5) {
-        color.setRGB(
-          0.2 + localStress * 1.6,
-          0.7,
-          0.2
-        );
+      let r: number, g: number, b: number;
+      if (localStress < 0.2) {
+        r = 0.53; g = 0.6; b = 0.67;
+      } else if (localStress < 0.5) {
+        const t = (localStress - 0.2) / 0.3;
+        r = 0.53 * (1 - t) + 0.2 * t;
+        g = 0.6 * (1 - t) + 0.8 * t;
+        b = 0.67 * (1 - t) + 0.2 * t;
+      } else if (localStress < 0.8) {
+        const t = (localStress - 0.5) / 0.3;
+        r = 0.2 * (1 - t) + 1.0 * t;
+        g = 0.8 * (1 - t) + 0.85 * t;
+        b = 0.2 * (1 - t) + 0.1 * t;
       } else {
-        color.setRGB(
-          1.0,
-          0.7 * (1 - (localStress - 0.5) * 2),
-          0.1
-        );
+        const t = (localStress - 0.8) / 0.2;
+        r = 1.0;
+        g = 0.85 * (1 - t) + 0.15 * t;
+        b = 0.1 * (1 - t);
       }
-      colors[i] = color.r;
-      colors[i + 1] = color.g;
-      colors[i + 2] = color.b;
+      colors[i] = r;
+      colors[i + 1] = g;
+      colors[i + 2] = b;
     }
     beamGeo.attributes.color.needsUpdate = true;
   }
@@ -404,7 +323,6 @@ export function initBeamSimulation() {
     beamGeo.attributes.position.needsUpdate = true;
     beamGeo.computeVertexNormals();
 
-    // Reset colors
     const colors = beamGeo.attributes.color.array as Float32Array;
     for (let i = 0; i < colors.length; i += 3) {
       colors[i] = 0.53;
@@ -413,37 +331,161 @@ export function initBeamSimulation() {
     }
     beamGeo.attributes.color.needsUpdate = true;
 
-    // Reset arrow material color
     arrowMat.color.setHex(0xf59e0b);
-
-    // Reset load label color
     loadLabel.style.color = '#f59e0b';
     loadBarFill.style.background = 'var(--gradient-main)';
   }
 
-  function hideFracture() {
-    fracturedPieces.forEach(p => p.visible = false);
-    debrisParticles.forEach(p => p.visible = false);
+  // ===== SCROLL PROGRESS =====
+  function getScrollProgress(): number {
+    const rect = simSection.getBoundingClientRect();
+    const sectionTop = -rect.top;
+    const sectionHeight = rect.height - window.innerHeight;
+    return Math.max(0, Math.min(1, sectionTop / sectionHeight));
   }
 
-  // ===== SCROLL LISTENER =====
-  function onScroll() {
+  // ===== UPDATE =====
+  function updateSimulation(progress: number, dt: number) {
+    if (progress > 0.01 && progress < 0.99) {
+      simOverlay.classList.add('visible');
+    } else {
+      simOverlay.classList.remove('visible');
+    }
+
+    // ===== PHASE 1: Camera intro + reset (0 – 0.15) =====
+    if (progress < 0.15) {
+      const t = progress / 0.15;
+      camera.position.x = 8 * Math.cos(t * Math.PI * 0.5) * (1 - t);
+      camera.position.z = 12 + (1 - t) * 3;
+      camera.position.y = 4 + (1 - t) * 2;
+      camera.lookAt(0, 0.5, 0);
+
+      // Full reset
+      beam.visible = true;
+      arrowGroup.visible = false;
+      leftHalf.visible = false;
+      rightHalf.visible = false;
+      isFractured = false;
+      leftPhys = makeFreshPhysics(-BEAM_LENGTH / 4, -1);
+      rightPhys = makeFreshPhysics(BEAM_LENGTH / 4, 1);
+      resetBeam();
+
+      loadBarFill.style.width = '0%';
+      loadLabel.textContent = 'Load: 0 kN';
+    }
+
+    // ===== PHASE 2: Arrow descends (0.15 – 0.4) =====
+    else if (progress < 0.4 && !isFractured) {
+      const t = (progress - 0.15) / 0.25;
+      camera.position.set(0, 4, 12);
+      camera.lookAt(0, 0.5, 0);
+
+      beam.visible = true;
+      arrowGroup.visible = true;
+      leftHalf.visible = false;
+      rightHalf.visible = false;
+
+      arrowGroup.position.y = 5 - t * 2.8;
+      arrowGroup.scale.setScalar(0.8 + t * 0.2);
+
+      const loadFraction = t * 0.2;
+      deformBeam(loadFraction);
+      colorBeam(loadFraction);
+
+      const loadKN = Math.round(loadFraction * MAX_LOAD);
+      loadBarFill.style.width = `${loadFraction * 100}%`;
+      loadLabel.textContent = `Load: ${loadKN} kN`;
+    }
+
+    // ===== PHASE 3: Heavy load, beam deflects (0.4 – 0.75) =====
+    else if (progress < 0.75 && !isFractured) {
+      const t = (progress - 0.4) / 0.35;
+      camera.position.set(0, 3.5 - t * 0.5, 10 - t * 2);
+      camera.lookAt(0, 0.5 - t * 0.3, 0);
+
+      beam.visible = true;
+      arrowGroup.visible = true;
+      leftHalf.visible = false;
+      rightHalf.visible = false;
+
+      arrowGroup.position.y = 2.2 - t * 0.5;
+      arrowGroup.scale.setScalar(1.0 + t * 0.4);
+
+      const r = 0.96;
+      const g = 0.62 * (1 - t * 0.7);
+      const bCol = 0.04 * (1 - t);
+      arrowMat.color.setRGB(r, g, bCol);
+
+      const loadFraction = 0.2 + t * 0.75;
+      deformBeam(loadFraction);
+      colorBeam(loadFraction);
+
+      const loadKN = Math.round(loadFraction * MAX_LOAD);
+      loadBarFill.style.width = `${loadFraction * 100}%`;
+      loadLabel.textContent = `Load: ${loadKN} kN`;
+      loadBarFill.style.background = `linear-gradient(90deg, #f59e0b, hsl(${40 - t * 40}, 90%, 50%))`;
+    }
+
+    // ===== PHASE 4: Fracture + free-fall (0.75 – 1.0) =====
+    else if (progress >= 0.75) {
+      if (!isFractured) {
+        isFractured = true;
+        beam.visible = false;
+        arrowGroup.visible = false;
+
+        // Show fracture pieces, initialize physics
+        leftHalf.visible = true;
+        rightHalf.visible = true;
+        leftPhys = makeFreshPhysics(-BEAM_LENGTH / 4, -1);
+        rightPhys = makeFreshPhysics(BEAM_LENGTH / 4, 1);
+      }
+
+      // Step physics with real delta time
+      stepPiece(leftPhys, dt);
+      stepPiece(rightPhys, dt);
+
+      // Apply to meshes
+      applyPhysicsToMesh(leftHalf, leftPhys);
+      applyPhysicsToMesh(rightHalf, rightPhys);
+
+      // Camera watches the fall
+      const orbitT = (progress - 0.75) / 0.25;
+      camera.position.set(
+        Math.sin(orbitT * Math.PI * 0.3) * 3,
+        3.5 + orbitT * 0.5,
+        10 + orbitT * 2
+      );
+      camera.lookAt(0, GROUND_Y + 0.5, 0);
+
+      // Load indicator
+      loadBarFill.style.width = '100%';
+      loadBarFill.style.background = 'linear-gradient(90deg, #ef4444, #991b1b)';
+      loadLabel.textContent = '⚠ BEAM FAILURE';
+      loadLabel.style.color = '#ef4444';
+    }
+  }
+
+  // ===== EVENTS =====
+  window.addEventListener('scroll', () => {
     scrollProgress = getScrollProgress();
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
+  }, { passive: true });
 
-  // ===== RESIZE =====
-  function onResize() {
+  window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-  window.addEventListener('resize', onResize);
+  });
 
-  // ===== ANIMATION LOOP =====
+  // ===== RENDER LOOP =====
+  let prevTime = performance.now();
+
   function animate() {
     requestAnimationFrame(animate);
-    updateSimulation(scrollProgress);
+    const now = performance.now();
+    const dt = Math.min((now - prevTime) / 1000, 0.05);
+    prevTime = now;
+
+    updateSimulation(scrollProgress, dt);
     renderer.render(scene, camera);
   }
   animate();
