@@ -120,7 +120,7 @@ function UDLArrows({ visible, posY, color }: { visible: boolean; posY: number; c
 }
 
 // ===== MAIN SCENE CONTENT =====
-function SceneContent({ progress }: { progress: number }) {
+function SceneContent({ progress, simMode }: { progress: number; simMode: 'POINT_DOWN' | 'UDL_UP' }) {
   const beamRef = useRef<THREE.Mesh>(null)
   const leftRef = useRef<THREE.Mesh>(null)
   const rightRef = useRef<THREE.Mesh>(null)
@@ -128,7 +128,6 @@ function SceneContent({ progress }: { progress: number }) {
 
   const origPositions = useRef<Float32Array | null>(null)
   const isFractured = useRef(false)
-  const simMode = useRef<'POINT_DOWN' | 'UDL_UP'>('POINT_DOWN')
   const leftPhys = useRef(makeFreshPhysics(-BEAM_LENGTH / 4, -1, 1.5, 0, 0, 0))
   const rightPhys = useRef(makeFreshPhysics(BEAM_LENGTH / 4, 1, 1.5, 0, 0, 0))
 
@@ -228,18 +227,18 @@ function SceneContent({ progress }: { progress: number }) {
     setArrowState(s => ({...s, pointVisible: false, udlVisible: false, fractured: true}))
   }, [])
 
+  useEffect(() => {
+    fullReset()
+  }, [simMode, fullReset])
+
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
     const p = progress
     const cam = camera as THREE.PerspectiveCamera
 
-    // Determine mode
-    if (p < 0.01 && simMode.current !== 'POINT_DOWN') { simMode.current = 'POINT_DOWN'; fullReset() }
-    else if (p > 0.99 && simMode.current !== 'UDL_UP') { simMode.current = 'UDL_UP'; fullReset() }
-
     const clamped = Math.max(0, Math.min(1, p))
 
-    if (simMode.current === 'POINT_DOWN') {
+    if (simMode === 'POINT_DOWN') {
       // Camera
       if (clamped < 0.15) {
         const t = clamped / 0.15
@@ -359,18 +358,25 @@ export default function BeamScene() {
   const sectionRef = useRef<HTMLElement>(null)
   const [progress, setProgress] = useState(0)
   const [overlayVisible, setOverlayVisible] = useState(false)
+  const [simMode, setSimMode] = useState<'POINT_DOWN' | 'UDL_UP'>('POINT_DOWN')
 
   useScrollProgress(sectionRef, useCallback((p: number) => {
     setProgress(p)
     setOverlayVisible(p > 0.01 && p < 0.99)
+    if (p < 0.01) setSimMode('POINT_DOWN')
+    else if (p > 0.99) setSimMode('UDL_UP')
   }, []))
 
-  const loadFraction = progress < 0.15 ? 0
-    : progress < 0.4 ? ((progress - 0.15) / 0.25) * 0.2
-    : progress < 0.75 ? 0.2 + ((progress - 0.4) / 0.35) * 0.75
+  const p = simMode === 'POINT_DOWN' ? Math.max(0, Math.min(1, progress)) : 1 - Math.max(0, Math.min(1, progress))
+  const loadFraction = p < 0.15 ? 0
+    : p < 0.4 ? ((p - 0.15) / 0.25) * 0.2
+    : p < 0.75 ? 0.2 + ((p - 0.4) / 0.35) * 0.75
     : 1
-  const loadKN = Math.round(loadFraction * MAX_LOAD)
-  const isBroken = progress >= 0.75
+  
+  const MAX_UDL = 50
+  const loadVal = Math.round(loadFraction * (simMode === 'POINT_DOWN' ? MAX_LOAD : MAX_UDL))
+  const unit = simMode === 'POINT_DOWN' ? 'kN' : 'kN/m'
+  const isBroken = p >= 0.75
 
   return (
     <section ref={sectionRef} id="simulation" className="relative h-[400vh]">
@@ -384,13 +390,13 @@ export default function BeamScene() {
             scene.fog = new THREE.Fog(0x0d0d14, 15, 35)
           }}
         >
-          <SceneContent progress={progress} />
+          <SceneContent progress={progress} simMode={simMode} />
         </Canvas>
 
         {/* Overlay */}
         <div className={`sim-overlay ${overlayVisible ? 'visible' : ''}`}>
-          <p className="font-['Outfit'] font-bold text-sm tracking-wider text-[var(--text-secondary)] mb-2">
-            {isBroken ? '⚠ BEAM FAILURE' : `Load: ${loadKN} kN`}
+          <p className="font-['Outfit'] font-bold text-sm tracking-wider text-[var(--text-secondary)] mb-2" style={{ color: isBroken ? '#ef4444' : 'var(--text-secondary)' }}>
+            {isBroken ? (simMode === 'POINT_DOWN' ? '⚠ POINT FAILURE' : '⚠ UPWARD FAILURE') : `Load: ${loadVal} ${unit}`}
           </p>
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
@@ -399,7 +405,9 @@ export default function BeamScene() {
                 width: `${loadFraction * 100}%`,
                 background: isBroken
                   ? 'linear-gradient(90deg, #ef4444, #991b1b)'
-                  : `linear-gradient(90deg, #f59e0b, hsl(${40 - loadFraction * 40}, 90%, 50%))`,
+                  : simMode === 'POINT_DOWN'
+                    ? `linear-gradient(90deg, #f59e0b, hsl(${40 - loadFraction * 40}, 90%, 50%))`
+                    : `linear-gradient(90deg, #3b82f6, hsl(${260 - loadFraction * 260}, 90%, 60%))`,
               }}
             />
           </div>
@@ -408,3 +416,4 @@ export default function BeamScene() {
     </section>
   )
 }
+
