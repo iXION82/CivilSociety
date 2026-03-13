@@ -1,6 +1,7 @@
 import './style.css';
 import { initBeamSimulation } from './beam';
 import { initBackgroundAnimations } from './backgroundAnimations';
+import { initPageTransitions } from './transition';
 
 // ===== NAVBAR SCROLL EFFECT =====
 const navbar = document.getElementById('navbar');
@@ -14,7 +15,7 @@ window.addEventListener('scroll', () => {
 
 // ===== SECTION FADE-IN ANIMATIONS =====
 function initSectionAnimations() {
-  const sections = document.querySelectorAll('#about, #events, footer');
+  const sections = document.querySelectorAll('#about, #events-timeline, footer');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -36,5 +37,6 @@ function initSectionAnimations() {
 document.addEventListener('DOMContentLoaded', () => {
   initBeamSimulation();
   initBackgroundAnimations();
+  initPageTransitions();
   initSectionAnimations();
 });
