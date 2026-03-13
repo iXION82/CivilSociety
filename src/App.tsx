@@ -6,6 +6,7 @@ import PageLoader from './components/PageLoader'
 import Home from './pages/Home'
 import Team from './pages/Team'
 import Events from './pages/Events'
+import Professors from './pages/Professors'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/team" element={<Team />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/professors" element={<Professors />} />
         </Routes>
       </main>
       <Footer />

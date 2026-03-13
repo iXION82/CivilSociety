@@ -2,11 +2,11 @@ import BeamScene from '../components/BeamScene'
 import ConceptBlock from '../components/ConceptBlock'
 
 const concepts = [
-  { type: 'construction', icon: '🏗️', title: 'Construction Time-lapse', desc: 'Watch floors rise from the foundation — columns, beams, and slabs assembled in sequence, mimicking real-world construction phasing.', align: 'right' as const },
-  { type: 'soil', icon: '🏠', title: 'Soil Settlement', desc: 'Heavy structures compress the soil beneath them. Clay layers consolidate, the ground sinks, and buildings tilt when foundations sit on uneven strata.', align: 'left' as const },
-  { type: 'earthquake', icon: '🌍', title: 'Earthquake Dynamics', desc: 'Seismic waves shake the ground while buildings sway. Structural engineers design cross-bracing and base isolators to absorb these destructive forces.', align: 'right' as const },
-  { type: 'wind', icon: '💨', title: 'Aerodynamic Wind Loads', desc: 'Tall buildings act as bluff bodies in wind flow. Vortex shedding creates oscillating forces while the structure flexes to absorb dynamic pressure.', align: 'left' as const },
-  { type: 'dam', icon: '🌊', title: 'Hydrostatic Pressure', desc: 'As water depth increases, the pressure exerted against a retaining wall grows exponentially. Massive concrete dams are built thicker at their base to absorb these crushing forces.', align: 'left' as const },
+  { type: 'construction', icon: '🏗️', title: 'Construction Time-lapse', desc: 'Watch floors rise from the foundation — columns, beams, and slabs assembled in sequence, mimicking real-world construction phasing.', align: 'left' as const },
+  { type: 'soil', icon: '🏠', title: 'Soil Settlement', desc: 'Heavy structures compress the soil beneath them. Clay layers consolidate, the ground sinks, and buildings tilt when foundations sit on uneven strata.', align: 'right' as const },
+  { type: 'earthquake', icon: '🌍', title: 'Earthquake Dynamics', desc: 'Seismic waves shake the ground while buildings sway. Structural engineers design cross-bracing and base isolators to absorb these destructive forces.', align: 'left' as const },
+  { type: 'wind', icon: '💨', title: 'Aerodynamic Wind Loads', desc: 'Tall buildings act as bluff bodies in wind flow. Vortex shedding creates oscillating forces while the structure flexes to absorb dynamic pressure.', align: 'right' as const },
+  { type: 'dam', icon: '🌊', title: 'Hydrostatic Pressure', desc: 'As water depth increases, the pressure exerted against a retaining wall grows exponentially. Massive concrete dams are built thicker at their base to absorb these crushing forces.', align: 'right' as const },
 ]
 
 export default function Home() {

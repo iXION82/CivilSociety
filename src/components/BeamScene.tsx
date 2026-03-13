@@ -396,6 +396,20 @@ export default function BeamScene() {
           <SceneContent progress={progress} simMode={simMode} />
         </Canvas>
 
+        {/* Heading Text */}
+        <div className={`absolute top-24 left-1/2 -translate-x-1/2 text-center transition-opacity duration-700 pointer-events-none ${overlayVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <span className="inline-block text-xs md:text-sm tracking-[4px] uppercase font-semibold mb-2 px-4 py-1.5 rounded-full border bg-black/40 backdrop-blur-md"
+            style={{ 
+              color: simMode === 'POINT_DOWN' ? '#f59e0b' : '#3b82f6',
+              borderColor: simMode === 'POINT_DOWN' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'
+            }}>
+            {simMode === 'POINT_DOWN' ? 'Stress Analysis' : 'Uplift Forces'}
+          </span>
+          <h2 className="font-['Outfit'] text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
+            {simMode === 'POINT_DOWN' ? 'Concentrated Point Load' : 'Uniform Upward Load'}
+          </h2>
+        </div>
+
         {/* Overlay */}
         <div className={`sim-overlay ${overlayVisible ? 'visible' : ''}`}>
           <p className="font-['Outfit'] font-bold text-sm tracking-wider text-[var(--text-secondary)] mb-2" style={{ color: isBroken ? '#ef4444' : 'var(--text-secondary)' }}>
