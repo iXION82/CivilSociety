@@ -201,14 +201,17 @@ export function initBeamSimulation() {
   
   // State Machine values
   let simMode: 'POINT_DOWN' | 'UDL_UP' = 'POINT_DOWN';
-  function getRawScrollProgress(): number {
+  function getScrollState() {
     const rect = simSection.getBoundingClientRect();
     const sectionTop = -rect.top;
     const sectionHeight = rect.height - window.innerHeight;
-    return sectionTop / sectionHeight;
+    return {
+      progress: sectionTop / sectionHeight,
+      offTop: rect.bottom < 0,
+      offBottom: rect.top > window.innerHeight
+    };
   }
   let rawProgress = 0;
-  let lastRawProgress = 0;
 
   function makeFreshPhysics(startX: number, side: number, vx: number, vyVal: number, vaVal: number, vz: number): PiecePhysics {
     return {
@@ -547,7 +550,7 @@ export function initBeamSimulation() {
 
   // ===== EVENTS & LOOP =====
   window.addEventListener('scroll', () => {
-    rawProgress = getRawScrollProgress();
+    // Only used for checking if we scroll, loop handles the update
   }, { passive: true });
 
   window.addEventListener('resize', () => {
@@ -556,8 +559,7 @@ export function initBeamSimulation() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  rawProgress = getRawScrollProgress();
-  lastRawProgress = rawProgress;
+  rawProgress = getScrollState().progress;
   
   let prevTime = performance.now();
 
@@ -573,14 +575,16 @@ export function initBeamSimulation() {
       simOverlay.classList.remove('visible');
     }
 
-    if (lastRawProgress < 0 && rawProgress >= 0) {
+    const state = getScrollState();
+    rawProgress = state.progress;
+
+    if (state.offBottom && simMode !== 'POINT_DOWN') {
       simMode = 'POINT_DOWN';
       fullReset();
-    } else if (lastRawProgress > 1 && rawProgress <= 1) {
+    } else if (state.offTop && simMode !== 'UDL_UP') {
       simMode = 'UDL_UP';
       fullReset();
     }
-    lastRawProgress = rawProgress;
 
     const clamped = Math.max(0, Math.min(1, rawProgress));
 
