@@ -43,36 +43,40 @@ export default function Professors() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {professors.map((p) => (
-          <div key={p.name} className="glass-card hover:-translate-y-2 transition-transform duration-300 flex flex-col h-full overflow-hidden group">
-            <div className="h-48 relative overflow-hidden bg-white/5 flex items-center justify-center">
-              <img 
-                src={p.image} 
-                alt={p.name}
-                className={`w-full h-full object-cover transition-transform duration-500
-                  ${p.name === 'Prof. Punyabeet Sarangi' 
-                    ? 'scale-125 object-top group-hover:scale-150' 
-                    : 'scale-90 object-[center_20%] group-hover:scale-100'
-                  }
-                `}
-                onError={(e) => {
-                  // Fallback for broken images
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=0a0a0f&color=f59e0b&size=200`
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60" />
+          <div key={p.name} className="relative group rounded-2xl p-[2px] h-full flex flex-col overflow-hidden transition-all duration-500 hover:-translate-y-3 hover:shadow-[0_20px_40px_rgba(245,158,11,0.15)] bg-white/5">
+            
+            {/* Animated Rotating Border Layer */}
+            <div className="absolute top-1/2 left-1/2 w-[250%] h-[250%] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
+              <div className="w-full h-full animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_75%,#f59e0b_90%,#ef4444_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             </div>
-            <div className="p-6 flex flex-col flex-grow">
-              <h3 className="font-['Outfit'] text-lg font-bold mb-1 line-clamp-2">{p.name}</h3>
-              <span className="text-amber-500 text-xs font-semibold tracking-wider uppercase mb-3">{p.position}</span>
-              <div className="mt-auto space-y-2 text-sm text-[var(--text-muted)]">
-                <a href={`mailto:${p.email.trim()}`} className="flex items-center gap-2 hover:text-white transition-colors">
-                  <span>✉️</span> {p.email.trim()}
-                </a>
-                <a href={p.profile} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition-colors">
-                  <span>🔗</span> View Profile
-                </a>
+
+            {/* Inner Content Container */}
+            <div className="relative flex flex-col flex-grow bg-[#0a0a0f] rounded-[14px] overflow-hidden z-10 transition-colors duration-500">
+              <div className="h-52 relative overflow-hidden bg-white/5 flex items-center justify-center p-3">
+                <img 
+                  src={p.image} 
+                  alt={p.name}
+                  className="w-full h-full object-contain filter group-hover:brightness-110 transition-all duration-500"
+                  onError={(e) => {
+                    // Fallback for broken images
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=0a0a0f&color=f59e0b&size=200`
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-50 group-hover:opacity-20 transition-opacity duration-500" />
+              </div>
+              <div className="p-6 flex flex-col flex-grow border-t border-white/5">
+                <h3 className="font-['Outfit'] text-lg font-bold mb-1 line-clamp-2 group-hover:text-amber-400 transition-colors duration-300">{p.name}</h3>
+                <span className="text-amber-500 text-xs font-semibold tracking-wider uppercase mb-4">{p.position}</span>
+                <div className="mt-auto space-y-3 text-sm text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors duration-300">
+                  <a href={`mailto:${p.email.trim()}`} className="flex items-center gap-2 hover:text-white transition-colors duration-300 w-fit">
+                    <span className="text-amber-500">✉️</span> {p.email.trim()}
+                  </a>
+                  <a href={p.profile} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition-colors duration-300 w-fit">
+                    <span className="text-amber-500">🔗</span> View Profile
+                  </a>
+                </div>
               </div>
             </div>
           </div>

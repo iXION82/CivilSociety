@@ -35,6 +35,7 @@ export default function Navbar() {
         <NavLink to="/events" className={linkClass}>Events</NavLink>
         <NavLink to="/team" className={linkClass}>Our Team</NavLink>
         <NavLink to="/professors" className={linkClass}>Professors</NavLink>
+        <NavLink to="/alumni" className={linkClass}>Alumni</NavLink>
       </div>
     </nav>
   )
