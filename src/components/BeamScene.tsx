@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useScrollProgress } from '../hooks/useScrollProgress'
+import { useScrollProgress, ScrollState } from '../hooks/useScrollProgress'
 
 // ===== CONSTANTS =====
 const BEAM_LENGTH = 8
@@ -360,12 +360,15 @@ export default function BeamScene() {
   const [overlayVisible, setOverlayVisible] = useState(false)
   const [simMode, setSimMode] = useState<'POINT_DOWN' | 'UDL_UP'>('POINT_DOWN')
 
-  useScrollProgress(sectionRef, useCallback((p: number) => {
-    setProgress(p)
-    setOverlayVisible(p > 0.01 && p < 0.99)
-    if (p < 0.01) setSimMode('POINT_DOWN')
-    else if (p > 0.99) setSimMode('UDL_UP')
-  }, []))
+  useScrollProgress(sectionRef, useCallback((state: ScrollState) => {
+    setProgress(state.progress)
+    setOverlayVisible(state.progress > 0.01 && state.progress < 0.99)
+    if (state.offBottom && simMode !== 'POINT_DOWN') {
+      setSimMode('POINT_DOWN')
+    } else if (state.offTop && simMode !== 'UDL_UP') {
+      setSimMode('UDL_UP')
+    }
+  }, [simMode]))
 
   const p = simMode === 'POINT_DOWN' ? Math.max(0, Math.min(1, progress)) : 1 - Math.max(0, Math.min(1, progress))
   const loadFraction = p < 0.15 ? 0

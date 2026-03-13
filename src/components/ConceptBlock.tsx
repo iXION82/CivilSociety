@@ -117,6 +117,7 @@ interface Props {
 export default function ConceptBlock({ type, title, icon, description, align = 'right' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const blockRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef(0)
   const currentRef = useRef(0)
   const activeRef = useRef(false)
@@ -152,6 +153,13 @@ export default function ConceptBlock({ type, title, icon, description, align = '
     function animate() {
       animId = requestAnimationFrame(animate)
       currentRef.current += (progressRef.current - currentRef.current) * 0.1
+      
+      const content = contentRef.current
+      if (content) {
+        if (activeRef.current) content.classList.add('active')
+        else content.classList.remove('active')
+      }
+
       const w = canvas!.width / (window.devicePixelRatio || 1)
       const h = canvas!.height / (window.devicePixelRatio || 1)
       ctx!.clearRect(0, 0, w, h)
@@ -176,7 +184,7 @@ export default function ConceptBlock({ type, title, icon, description, align = '
   return (
     <div ref={blockRef} className="concept-block">
       <canvas ref={canvasRef} className="concept-bg-canvas" />
-      <div className={`concept-content ${align === 'left' ? 'ml-12 mr-auto' : 'mr-12 ml-auto'} max-w-md`}>
+      <div ref={contentRef} className={`concept-content ${align === 'left' ? 'ml-12 mr-auto' : 'mr-12 ml-auto'} max-w-md`}>
         <div className="glass-card p-8">
           <div className="text-3xl mb-4">{icon}</div>
           <h3 className="font-['Outfit'] text-2xl font-bold mb-3">{title}</h3>

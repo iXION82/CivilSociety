@@ -1,12 +1,18 @@
 import { useEffect, useRef, useCallback } from 'react'
 
+export interface ScrollState {
+  progress: number
+  offTop: boolean
+  offBottom: boolean
+}
+
 /**
  * Returns a scroll progress value [0, 1] for a given ref element.
  * 0 = section top at viewport bottom, 1 = section bottom at viewport top.
  */
 export function useScrollProgress(
   ref: React.RefObject<HTMLElement | null>,
-  callback: (progress: number) => void
+  callback: (state: ScrollState) => void
 ) {
   const rafId = useRef(0)
 
@@ -16,7 +22,11 @@ export function useScrollProgress(
     const sectionTop = -rect.top
     const sectionHeight = rect.height - window.innerHeight
     const p = Math.max(0, Math.min(1, sectionTop / sectionHeight))
-    callback(p)
+    callback({
+      progress: p,
+      offTop: rect.bottom < 0,
+      offBottom: rect.top > window.innerHeight
+    })
   }, [ref, callback])
 
   useEffect(() => {
