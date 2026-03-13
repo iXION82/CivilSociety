@@ -181,13 +181,13 @@ function SceneContent({ progress, simMode }: { progress: number; simMode: 'POINT
       else {
         const t = Math.min(1, Math.max(0, (ls - 0.2) / 0.8))
         if (!isUDL) {
-          if (t < 0.375) { const t2 = t / 0.375; r = 0.53*(1-t2)+0.2*t2; g = 0.6*(1-t2)+0.8*t2; b = 0.67*(1-t2)+0.2*t2 }
-          else if (t < 0.75) { const t2 = (t-0.375)/0.375; r = 0.2*(1-t2)+1*t2; g = 0.8*(1-t2)+0.85*t2; b = 0.2*(1-t2)+0.1*t2 }
-          else { const t2 = (t-0.75)/0.25; r = 1; g = 0.85*(1-t2)+0.15*t2; b = 0.1*(1-t2) }
+          if (t < 0.375) { const t2 = t / 0.375; r = 0.53*(1-t2)+0.2*t2; g = 0.6*(1-t2)+1*t2; b = 0.67*(1-t2)+0*t2 }
+          else if (t < 0.75) { const t2 = (t-0.375)/0.375; r = 0.2*(1-t2)+1*t2; g = 1*(1-t2)+0.6*t2; b = 0*(1-t2)+0*t2 }
+          else { const t2 = (t-0.75)/0.25; r = 1; g = 0.6*(1-t2)+0*t2; b = 0 }
         } else {
-          if (t < 0.375) { const t2 = t / 0.375; r = 0.53*(1-t2)+0.2*t2; g = 0.6*(1-t2)+0.5*t2; b = 0.67*(1-t2)+1*t2 }
-          else if (t < 0.75) { const t2 = (t-0.375)/0.375; r = 0.2*(1-t2)+0.7*t2; g = 0.5*(1-t2)+0.2*t2; b = 1 }
-          else { const t2 = (t-0.75)/0.25; r = 0.7*(1-t2)+1*t2; g = 0.2*(1-t2)+0.2*t2; b = 1*(1-t2)+0.2*t2 }
+          if (t < 0.375) { const t2 = t / 0.375; r = 0.53*(1-t2)+0*t2; g = 0.6*(1-t2)+0.8*t2; b = 0.67*(1-t2)+1*t2 }
+          else if (t < 0.75) { const t2 = (t-0.375)/0.375; r = 0*(1-t2)+0.8*t2; g = 0.8*(1-t2)+0*t2; b = 1 }
+          else { const t2 = (t-0.75)/0.25; r = 0.8*(1-t2)+1*t2; g = 0; b = 1*(1-t2)+0*t2 }
         }
       }
       colors[i] = r!; colors[i+1] = g!; colors[i+2] = b!
@@ -316,9 +316,9 @@ function SceneContent({ progress, simMode }: { progress: number; simMode: 'POINT
   return (
     <>
       {/* Lights */}
-      <ambientLight intensity={0.8} color={0x404060} />
-      <directionalLight position={[5, 8, 5]} intensity={1.2} color={0xfff0e0} castShadow shadow-mapSize={[2048, 2048]} />
-      <pointLight position={[-5, 3, -3]} intensity={0.6} color={0xf59e0b} distance={20} />
+      <ambientLight intensity={1.5} color={0x606080} />
+      <directionalLight position={[5, 8, 5]} intensity={2.5} color={0xfff0e0} castShadow shadow-mapSize={[2048, 2048]} />
+      <pointLight position={[-5, 3, -3]} intensity={1.5} color={0xf59e0b} distance={20} />
 
       {/* Ground */}
       <gridHelper args={[30, 30, 0x1a1a2e, 0x1a1a2e]} position={[0, GROUND_Y, 0]} />
