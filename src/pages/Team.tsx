@@ -7,46 +7,46 @@ interface TeamMember {
   desc: string;
   number: string;
   linkedin: string;
-  image:string;
+  image: string;
 }
 
 export default function Team() {
   const members: TeamMember[] = [
-    { 
-      name: 'Deepak Kumar', 
-      role: 'President', 
+    {
+      name: 'Deepak Kumar',
+      role: 'President',
       desc: 'Leading the chapter with a vision for structural excellence and innovation in civil engineering education.',
       number: '+91 1234567890',
       linkedin: 'https://linkedin.com/in/your-link-here',
-      image: 'placeholder.png',
+      image: 'Deepak.png',
     },
-    { 
-      name: 'Matam Sai Yashwanth', 
-      role: 'Vice President', 
+    {
+      name: 'Matam Sai Yashwanth',
+      role: 'Vice President',
       desc: 'Supporting chapter initiatives and fostering academic collaboration across departments.',
       number: '+91 91000 71964',
       linkedin: 'https://linkedin.com/in/your-link-here',
       image: 'Matam.jpeg',
     },
-    { 
-      name: 'Abhishek Raj', 
-      role: 'Secretary', 
+    {
+      name: 'Abhishek Raj',
+      role: 'Secretary',
       desc: 'Coordinating all chapter activities, communications, and maintaining organizational records.',
       number: '+91 3456789012',
       linkedin: 'https://linkedin.com/in/your-link-here',
       image: 'Abhishek.png',
     },
-    { 
-      name: 'Pari Agrawal', 
-      role: 'Event Coordinator', 
+    {
+      name: 'Pari Agrawal',
+      role: 'Event Coordinator',
       desc: 'Planning and executing workshops, guest lectures, and technical competitions.',
       number: '+91 4567890123',
       linkedin: 'https://linkedin.com/in/your-link-here',
       image: 'Pari.png',
     },
-    { 
-      name: 'Rishit Bhardwaj', 
-      role: 'Event Coordinator', 
+    {
+      name: 'Rishit Bhardwaj',
+      role: 'Event Coordinator',
       desc: 'Managing event logistics and ensuring memorable experiences for all participants.',
       number: '+91 5678901234',
       linkedin: 'https://linkedin.com/in/your-link-here',
@@ -57,7 +57,7 @@ export default function Team() {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget;
     target.style.display = 'none';
- 
+
     if (target.parentElement) {
       target.parentElement.innerHTML = '👤';
       target.parentElement.classList.add('text-3xl');
@@ -82,8 +82,8 @@ export default function Team() {
           return (
             <div key={m.name} className="glass-card p-8 flex flex-col items-center text-center gap-4">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500/20 to-red-500/20 border-2 border-amber-500/30 flex items-center justify-center overflow-hidden">
-                <img 
-                  src={`/${m.image}`} 
+                <img
+                  src={`/${m.image}`}
                   alt={`${m.name}'s profile`}
                   className="w-full h-full object-cover"
                   onError={handleImageError}

@@ -45,8 +45,8 @@ interface PiecePhysics {
   angle: number; va: number; resting: boolean
 }
 
-function makeFreshPhysics(startX: number, side: number, vx: number, vy: number, va: number, vz: number): PiecePhysics {
-  return { x: startX, y: BEAM_REST_Y, z: 0, vx: side * vx, vy, vz, angle: 0, va: va === 0 ? side * 1.5 : va, resting: false }
+function makeFreshPhysics(startX: number, side: number, vx: number, vy: number, va: number, vz: number, startY: number = BEAM_REST_Y, startAngle: number = 0): PiecePhysics {
+  return { x: startX, y: startY, z: 0, vx: side * vx, vy, vz, angle: startAngle, va: va === 0 ? side * 1.5 : va, resting: false }
 }
 
 function getLowestY(cy: number, angle: number): number {
@@ -218,12 +218,16 @@ function SceneContent({ progress, simMode }: { progress: number; simMode: 'POINT
     if (beamRef.current) beamRef.current.visible = false
     if (leftRef.current) leftRef.current.visible = true
     if (rightRef.current) rightRef.current.visible = true
+    
+    // Calculate initial positions and angles to match the bent state
+    // MAX_DEFLECTION * 0.95 (frozen loadFraction)
+    const maxDef = MAX_DEFLECTION * 0.95
     if (dir === 'DOWN') {
-      leftPhys.current = makeFreshPhysics(-BEAM_LENGTH/4, -1, 1.5, 0, 0, 2)
-      rightPhys.current = makeFreshPhysics(BEAM_LENGTH/4, 1, 1.5, 0, 0, 2)
+      leftPhys.current = makeFreshPhysics(-BEAM_LENGTH/4, -1, 1.5, -3, -2, 4, BEAM_REST_Y - maxDef * 0.5, -0.15)
+      rightPhys.current = makeFreshPhysics(BEAM_LENGTH/4, 1, 1.5, -3, 2, 4, BEAM_REST_Y - maxDef * 0.5, 0.15)
     } else {
-      leftPhys.current = makeFreshPhysics(-BEAM_LENGTH/4, -1, 1.5, 8, 8, 3)
-      rightPhys.current = makeFreshPhysics(BEAM_LENGTH/4, 1, 1.5, 8, -8, 3)
+      leftPhys.current = makeFreshPhysics(-BEAM_LENGTH/4, -1, 1.5, 5, 3, 4, BEAM_REST_Y + maxDef * 0.5, 0.15)
+      rightPhys.current = makeFreshPhysics(BEAM_LENGTH/4, 1, 1.5, 5, -3, 4, BEAM_REST_Y + maxDef * 0.5, -0.15)
     }
     setArrowState(s => ({...s, pointVisible: false, udlVisible: false, fractured: true}))
   }, [])
@@ -244,10 +248,19 @@ function SceneContent({ progress, simMode }: { progress: number; simMode: 'POINT
       if (clamped < 0.15) {
         const t = clamped / 0.15
         cam.position.set(8 * Math.cos(t * Math.PI * 0.5) * (1-t), 4 + (1-t)*2, 12 + (1-t)*3)
-      } else if (clamped < 0.4) { cam.position.set(0, 4, 12) }
-      else if (clamped < 0.75) { const t = (clamped-0.4)/0.35; cam.position.set(0, 3.5-t*0.5, 10-t*2) }
-      else { const t = (clamped-0.75)/0.25; cam.position.set(Math.sin(t*Math.PI*0.3)*3, 3.5+t*0.5, 10+t*2) }
-      cam.lookAt(0, clamped > 0.75 ? GROUND_Y + 0.5 : 0.5, 0)
+        cam.lookAt(0, 0.5, 0)
+      } else if (clamped < 0.4) { 
+        cam.position.set(0, 4, 12) 
+        cam.lookAt(0, 0.5, 0)
+      } else if (clamped < 0.75) { 
+        const t = (clamped-0.4)/0.35
+        cam.position.set(0, 4 - t*1, 12 - t*4) 
+        cam.lookAt(0, 0.5, 0)
+      } else { 
+        const t = (clamped-0.75)/0.25
+        cam.position.set(Math.sin(t*Math.PI*0.3)*3, 3 + t*0.5, 8 + t*2) 
+        cam.lookAt(0, 0.5 - t * 0.5, 0)
+      }
 
       if (!isFractured.current) {
         if (clamped < 0.15) {
@@ -269,11 +282,22 @@ function SceneContent({ progress, simMode }: { progress: number; simMode: 'POINT
       }
     } else {
       const rev = 1 - clamped
-      if (rev < 0.15) { cam.position.set(0, 1, 12) }
-      else if (rev < 0.4) { const t = (rev-0.15)/0.25; cam.position.set(0, 1+t*2, 12-t*2) }
-      else if (rev < 0.75) { const t = (rev-0.4)/0.35; cam.position.set(0, 3-t, 10-t*2) }
-      else { const t = (rev-0.75)/0.25; cam.position.set(Math.sin(t*Math.PI*0.3)*4, 2+t, 8+t*2) }
-      cam.lookAt(0, rev > 0.75 ? GROUND_Y + 1 : BEAM_REST_Y, 0)
+      if (rev < 0.15) { 
+        cam.position.set(0, 1, 12) 
+        cam.lookAt(0, BEAM_REST_Y, 0)
+      } else if (rev < 0.4) { 
+        const t = (rev-0.15)/0.25
+        cam.position.set(0, 1+t*2, 12-t*2) 
+        cam.lookAt(0, BEAM_REST_Y, 0)
+      } else if (rev < 0.75) { 
+        const t = (rev-0.4)/0.35
+        cam.position.set(0, 3-t, 10-t*2) 
+        cam.lookAt(0, BEAM_REST_Y, 0)
+      } else { 
+        const t = (rev-0.75)/0.25
+        cam.position.set(Math.sin(t*Math.PI*0.3)*4, 2+t, 8+t*2) 
+        cam.lookAt(0, BEAM_REST_Y + t * 0.2, 0)
+      }
 
       if (!isFractured.current) {
         if (rev < 0.15) { setArrowState(s => ({...s, udlVisible: false, pointVisible: false })) }
