@@ -372,15 +372,16 @@ export default function BeamScene() {
   }, [simMode]))
 
   const p = simMode === 'POINT_DOWN' ? Math.max(0, Math.min(1, progress)) : 1 - Math.max(0, Math.min(1, progress))
+  const isBroken = p >= 0.75
+  
   const loadFraction = p < 0.15 ? 0
     : p < 0.4 ? ((p - 0.15) / 0.25) * 0.2
     : p < 0.75 ? 0.2 + ((p - 0.4) / 0.35) * 0.75
-    : 1
+    : 0.95 // Frozen at breaking point
   
   const MAX_UDL = 50
   const loadVal = Math.round(loadFraction * (simMode === 'POINT_DOWN' ? MAX_LOAD : MAX_UDL))
   const unit = simMode === 'POINT_DOWN' ? 'kN' : 'kN/m'
-  const isBroken = p >= 0.75
 
   return (
     <section ref={sectionRef} id="simulation" className="relative h-[400vh]">
