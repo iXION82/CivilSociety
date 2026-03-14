@@ -35,7 +35,9 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/[0.06] mt-12 pt-6 text-center">
-        <p className="text-[var(--text-muted)] text-sm">&copy; 2026 ASCE Student Chapter, IIT ISM Dhanbad. All rights reserved.</p>
+        <p className="text-[var(--text-muted)] text-sm">&copy; 2026 ASCE Student Chapter, IIT ISM Dhanbad. All rights reserved. | Developed by <a href='trivalent102103@gmail.com'
+          className='hover:text-white'
+        >Trivalent</a></p>
       </div>
     </footer>
   )

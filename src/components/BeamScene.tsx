@@ -412,12 +412,12 @@ export default function BeamScene() {
 
         {/* Overlay */}
         <div className={`sim-overlay ${overlayVisible ? 'visible' : ''}`}>
-          <p className="font-['Outfit'] font-bold text-sm tracking-wider text-[var(--text-secondary)] mb-2" style={{ color: isBroken ? '#ef4444' : 'var(--text-secondary)' }}>
+          <p className="font-['Outfit'] font-bold text-sm tracking-wider mb-2" style={{ color: isBroken ? '#ef4444' : 'var(--text-secondary)' }}>
             {isBroken ? (simMode === 'POINT_DOWN' ? '⚠ POINT FAILURE' : '⚠ UPWARD FAILURE') : `Load: ${loadVal} ${unit}`}
           </p>
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-200"
+              className="h-full rounded-full"
               style={{
                 width: `${loadFraction * 100}%`,
                 background: isBroken
