@@ -55,13 +55,13 @@ export default function Navbar() {
 
       <div className="flex gap-8">
         <NavLink to="/" className={linkClass} end>Home</NavLink>
-        <NavLink to="/ism" className={linkClass}>ISM</NavLink>
         <a href="/#about" className="relative text-sm transition-colors duration-300 hover:text-amber-400 text-[var(--text-secondary)]">About</a>
         <a href="/#simulation" className="relative text-sm transition-colors duration-300 hover:text-amber-400 text-[var(--text-secondary)]">Simulation</a>
         <NavLink to="/events" className={linkClass}>Events</NavLink>
         <NavLink to="/team" className={linkClass}>Our Team</NavLink>
         <NavLink to="/professors" className={linkClass}>Professors</NavLink>
         <NavLink to="/alumni" className={linkClass}>Alumni</NavLink>
+        <NavLink to="/ism" className={linkClass}>ISM</NavLink>
       </div>
     </nav>
   )
