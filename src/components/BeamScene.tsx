@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useScrollProgress, ScrollState } from '../hooks/useScrollProgress'
+import Graphs from './Graphs'
 
 // ===== CONSTANTS =====
 const BEAM_LENGTH = 8
@@ -395,6 +396,14 @@ export default function BeamScene() {
         >
           <SceneContent progress={progress} simMode={simMode} />
         </Canvas>
+
+        {/* Real-time Graphs (Fading in with overlay via visible prop) */}
+        <Graphs
+          simMode={simMode}
+          loadFraction={loadFraction}
+          isBroken={isBroken}
+          visible={overlayVisible}
+        />
 
         {/* Heading Text */}
         <div className={`absolute top-24 left-1/2 -translate-x-1/2 text-center transition-opacity duration-700 pointer-events-none ${overlayVisible ? 'opacity-100' : 'opacity-0'}`}>
